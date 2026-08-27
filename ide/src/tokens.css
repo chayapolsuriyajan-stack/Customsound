@@ -1,0 +1,112 @@
+/* ---------------------------------------------------------------------------
+   System Interface - Skeuomorphic Clean
+   Tokens transcribed from DESIGN.md. Nothing else in the app hard-codes a
+   colour, radius, or font family; every rule reads from here, and a theme
+   extension restyles the whole IDE by overriding these same properties on
+   :root.
+   --------------------------------------------------------------------------- */
+
+@font-face {
+  font-family: 'DM Mono';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('./fonts/dm-mono-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/instrument-serif-400.woff2') format('woff2');
+}
+
+:root {
+  /* --- palette ------------------------------------------------------------ */
+  --primary: #FFB900;
+  --secondary: #000000;
+  --accent: #F78200;
+  --bg: #000000;
+  --surface: #521111;
+  --text: #FFFFFF;
+  --text-dim: #A1A1AA;
+  --border: #A3A3A3;
+
+  /* Spectrum Chroma, from the source's own colour strip. Used as the semantic
+     ramp: syntax tokens, git marks, diagnostic severities. Keeping the editor
+     interior on the same ramp as the chrome is what stops it reading as
+     "VS Code pasted into another design". */
+  --chroma-green: #5EBD3E;
+  --chroma-yellow: #FFB900;
+  --chroma-orange: #F78200;
+  --chroma-red: #E23838;
+  --chroma-purple: #973999;
+  --chroma-blue: #009CDF;
+
+  /* Derived surfaces. The source uses one surface token; a shell this dense
+     needs a couple of steps around it, so these are mixed from it rather than
+     invented, keeping the maroon cast consistent. */
+  --surface-raised: color-mix(in srgb, var(--surface) 82%, #FFFFFF 8%);
+  --surface-sunken: color-mix(in srgb, var(--surface) 78%, #000000 22%);
+  --surface-hover: color-mix(in srgb, var(--surface) 84%, #FFFFFF 12%);
+
+  /* Border roles. The spec's #A3A3A3 is bright against black, so it reads as a
+     machined bezel edge when used at 1px and at reduced alpha for interior
+     rules -- full strength only where two panes actually meet. */
+  --edge: color-mix(in srgb, var(--border) 42%, transparent);
+  --edge-soft: color-mix(in srgb, var(--border) 18%, transparent);
+  --edge-lit: color-mix(in srgb, #FFFFFF 14%, transparent);
+  --edge-shadow: rgb(0 0 0 / 0.55);
+
+  /* --- typography --------------------------------------------------------- */
+  --font-mono: 'DM Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --font-serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+
+  --display-lg-size: 64px;
+  --display-lg-weight: 500;
+  --display-lg-lh: 1.04;
+
+  --body-md-size: 16px;
+  --body-md-weight: 400;
+  --body-md-lh: 1.6;
+
+  --label-md-size: 12px;
+  --label-md-weight: 600;
+  --label-md-lh: 1.2;
+
+  /* --- spacing ------------------------------------------------------------ */
+  --space-base: 8px;
+  --space-gap: 16px;
+  --card-padding: 24px;
+  --section-padding: 80px;
+
+  /* --- radii -------------------------------------------------------------- */
+  --radius-card: 2px;
+  --radius-control: 4px;
+  --radius-pill: 9999px;
+
+  /* --- skeuomorphic depth ------------------------------------------------- */
+  /* Raised: a lit top edge plus a soft cast shadow. Inset: the reverse.
+     No gradients anywhere -- "clean" is the operative half of the phrase. */
+  --raise: inset 0 1px 0 var(--edge-lit), 0 1px 2px var(--edge-shadow);
+  --raise-hi: inset 0 1px 0 var(--edge-lit), 0 2px 6px var(--edge-shadow);
+  --sink: inset 0 1px 2px rgb(0 0 0 / 0.6), inset 0 -1px 0 var(--edge-lit);
+
+  /* --- chrome metrics ----------------------------------------------------- */
+  /* Operational density: this is a tool, not a marketing page. */
+  --row-h: 22px;
+  --tab-h: 35px;
+  --status-h: 24px;
+  --activity-w: 48px;
+  --sidebar-w: 260px;
+
+  /* --- motion ------------------------------------------------------------- */
+  --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --dur-fast: 120ms;
+  --dur: 180ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur: 0ms; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

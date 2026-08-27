@@ -1,0 +1,16 @@
+{
+  "id": "word-count",
+  "name": "Word Count",
+  "version": "1.0.0",
+  "description": "Live word/character/line counts in the status bar, plus a readability panel. Demonstrates commands, keybindings, a status bar item and a panel.",
+  "main": "index.js",
+  "activationEvents": ["onLanguage:markdown", "onLanguage:plaintext", "onCommand:wordCount.showDetails"],
+  "contributes": {
+    "commands": [
+      { "command": "wordCount.showDetails", "title": "Word Count: Show Details", "category": "Word Count" }
+    ],
+    "keybindings": [
+      { "key": "ctrl+alt+w", "command": "wordCount.showDetails" }
+    ]
+  }
+}

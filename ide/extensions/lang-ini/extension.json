@@ -1,0 +1,13 @@
+{
+  "id": "lang-ini",
+  "name": "INI / Properties",
+  "version": "1.0.0",
+  "description": "Syntax highlighting for .ini, .cfg, .conf and .properties files. Shows that a language shipped as an extension is indistinguishable from a built-in one.",
+  "main": "index.js",
+  "activationEvents": ["onStartup"],
+  "contributes": {
+    "languages": [
+      { "id": "ini-plus", "extensions": [".ini", ".cfg", ".conf", ".properties"], "aliases": ["INI"] }
+    ]
+  }
+}

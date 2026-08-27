@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Everything the frontend is allowed to reach. Filesystem access goes through this crate's own commands rather than tauri-plugin-fs, so the only capability granted here is the folder picker.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "dialog:allow-open"
+  ]
+}

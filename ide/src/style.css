@@ -1,0 +1,650 @@
+@import './tokens.css';
+
+/* ---------------------------------------------------------------------------
+   Chrome. Every value below comes from a token; the only literals are 0, 1px
+   hairlines, and alpha stops.
+   --------------------------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--label-md-size);
+  line-height: var(--label-md-lh);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button { font: inherit; color: inherit; }
+::selection { background: color-mix(in srgb, var(--primary) 35%, transparent); }
+
+/* Scrollbars follow the bezel language rather than the OS. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb {
+  background: var(--surface-raised);
+  border: 1px solid var(--edge-soft);
+  border-radius: var(--radius-pill);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--surface-hover); }
+
+/* --- shell grid ---------------------------------------------------------- */
+
+#app {
+  display: grid;
+  grid-template-columns: var(--activity-w) auto minmax(0, 1fr);
+  /* minmax(0, 1fr), not 1fr: a plain 1fr row takes its content's height as a
+     minimum, so opening the bottom panel would push the whole shell off the
+     top of the window instead of shrinking the editor. */
+  grid-template-rows: minmax(0, 1fr) var(--status-h);
+  grid-template-areas:
+    'activity sidebar main'
+    'status   status  status';
+  background: var(--bg);
+}
+
+/* Each pane is a discrete plate on the black ground: lit top edge, dark cast
+   below, 1px machined seam where it meets its neighbour. */
+.pane {
+  background: var(--surface);
+  box-shadow: inset 0 1px 0 var(--edge-lit);
+  min-height: 0;
+  min-width: 0;
+}
+
+/* --- activity bar -------------------------------------------------------- */
+
+.activity {
+  grid-area: activity;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-base);
+  padding: var(--space-base) 0;
+  border-right: 1px solid var(--edge);
+}
+
+.activity button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease),
+              background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+.activity button:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+  border-color: var(--edge-soft);
+  box-shadow: var(--raise);
+  transform: translateY(-1px);            /* hover lift, per the motion brief */
+}
+.activity button[aria-pressed='true'] {
+  color: var(--primary);
+  background: var(--surface-sunken);
+  border-color: var(--edge-soft);
+  box-shadow: var(--sink);
+}
+.activity svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.activity .spacer { flex: 1; }
+
+/* --- sidebar ------------------------------------------------------------- */
+
+.sidebar {
+  grid-area: sidebar;
+  width: var(--sidebar-w);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--edge);
+}
+.sidebar[hidden] { display: none; }
+
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-base);
+  height: var(--tab-h);
+  padding: 0 var(--space-base) 0 12px;
+  flex: none;
+  border-bottom: 1px solid var(--edge-soft);
+  background: var(--surface-raised);
+  box-shadow: var(--raise);
+}
+.sidebar-title {
+  font-size: var(--label-md-size);
+  font-weight: var(--label-md-weight);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-actions { display: flex; gap: 2px; flex: none; }
+.sidebar-actions[hidden] { display: none; }
+
+.icon-btn {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease);
+}
+.icon-btn:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+  border-color: var(--edge-soft);
+  box-shadow: var(--raise);
+}
+.icon-btn:active { box-shadow: var(--sink); }
+.icon-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+
+.sidebar-body { flex: 1; overflow: auto; min-height: 0; }
+
+/* --- explorer tree ------------------------------------------------------- */
+/* Guardrail: a dense operational list, never a spaced card grid. */
+
+.tree { padding: 4px 0 var(--space-gap); }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--row-h);
+  padding-right: var(--space-base);
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  border-left: 2px solid transparent;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.row:hover { background: var(--surface-hover); color: var(--text); }
+.row.selected {
+  background: var(--surface-sunken);
+  border-color: var(--edge-soft);
+  border-left-color: var(--primary);
+  color: var(--text);
+  box-shadow: var(--sink);
+}
+.row.drop-target {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.row.dir > .label { color: var(--text); }
+
+.row .chevron {
+  width: 14px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--text-dim);
+  transition: transform var(--dur-fast) var(--ease);
+}
+.row .chevron svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 2; }
+.row.open > .chevron { transform: rotate(90deg); }
+.row .chevron.leaf { visibility: hidden; }
+
+.row .ficon { width: 14px; flex: none; text-align: center; font-size: 10px; color: var(--text-dim); }
+.row.dir .ficon { color: var(--primary); }
+
+.row .label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--label-md-size);
+}
+.row.dirty > .label::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+.row .rename-input {
+  flex: 1;
+  min-width: 0;
+  height: 18px;
+  padding: 0 4px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-control);
+  box-shadow: var(--sink);
+  outline: none;
+}
+
+/* Staggered fade-up when a folder expands. --i is set per row in explorer.js. */
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: none; }
+}
+.row.entering {
+  animation: rowIn var(--dur) var(--ease) backwards;
+  animation-delay: calc(var(--i, 0) * 20ms);
+}
+
+/* --- main / tabs --------------------------------------------------------- */
+
+.main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg);
+}
+
+.tabs {
+  display: flex;
+  align-items: stretch;
+  height: var(--tab-h);
+  flex: none;
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--edge);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-base);
+  padding: 0 var(--space-base) 0 12px;
+  max-width: 200px;
+  flex: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1px solid var(--edge-soft);
+  border-top: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: 0;
+  position: relative;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.tab:hover { background: var(--surface-hover); color: var(--text); }
+.tab.active {
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 var(--edge-lit);
+}
+/* The active marker is the one place --primary is used as a bar. */
+.tab.active::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--primary);
+}
+.tab .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--label-md-size); }
+.tab .close {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-control);
+  color: inherit;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.tab:hover .close, .tab.active .close { opacity: 0.7; }
+.tab .close:hover { opacity: 1; background: var(--surface-hover); }
+.tab.dirty .close { opacity: 1; }
+.tab.dirty .close::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+}
+.tab.dirty:hover .close::before { display: none; }
+.tab.dirty:hover .close { font-size: 14px; }
+
+#editor { flex: 1; min-height: 0; }
+#editor[hidden] { display: none; }
+
+/* --- welcome ------------------------------------------------------------- */
+/* The first-viewport signal: display type, serif body, one focal action. */
+
+/* An explicit display rule beats [hidden]'s default, so every element that
+   toggles with the attribute needs its own [hidden] escape. */
+.welcome[hidden] { display: none; }
+
+.welcome {
+  flex: 1;
+  display: grid;
+  place-content: center;
+  justify-items: start;
+  gap: var(--space-gap);
+  padding: var(--section-padding);
+  min-height: 0;
+  overflow: auto;
+}
+.welcome h1 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--display-lg-size);
+  font-weight: var(--display-lg-weight);
+  line-height: var(--display-lg-lh);
+  letter-spacing: 0;
+  color: var(--text);
+}
+.welcome h1 em {
+  font-style: normal;
+  color: var(--primary);
+}
+.welcome p {
+  margin: 0;
+  max-width: 46ch;
+  font-family: var(--font-serif);
+  font-size: var(--body-md-size);
+  font-weight: var(--body-md-weight);
+  line-height: var(--body-md-lh);
+  color: var(--text-dim);
+}
+.welcome .keys {
+  display: grid;
+  gap: var(--space-base);
+  margin-top: var(--space-base);
+}
+.welcome .keys div { display: flex; align-items: center; gap: 12px; color: var(--text-dim); }
+
+kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 2px 6px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-control);
+  box-shadow: var(--raise);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-base);
+  padding: 10px var(--space-gap);
+  cursor: pointer;
+  color: var(--secondary);
+  background: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, #000);
+  border-radius: var(--radius-control);
+  box-shadow: var(--raise);
+  font-weight: var(--label-md-weight);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease),
+              background var(--dur-fast) var(--ease);
+}
+.btn:hover { background: var(--primary); transform: translateY(-1px); box-shadow: var(--raise-hi); }
+.btn:active { transform: none; box-shadow: var(--sink); }
+
+/* --- status bar ---------------------------------------------------------- */
+
+.status {
+  grid-area: status;
+  display: flex;
+  align-items: center;
+  gap: var(--space-gap);
+  padding: 0 12px;
+  height: var(--status-h);
+  background: var(--surface);
+  border-top: 1px solid var(--edge);
+  box-shadow: inset 0 1px 0 var(--edge-lit);
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow: hidden;
+}
+.status .spacer { flex: 1; }
+.status .item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px var(--space-base);
+  white-space: nowrap;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  cursor: default;
+  transition: all var(--dur-fast) var(--ease);
+}
+.status .item[hidden] { display: none; }
+.status .item[data-clickable] { cursor: pointer; }
+.status .item[data-clickable]:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+  border-color: var(--edge-soft);
+  box-shadow: var(--raise);
+}
+.status .item.accent { color: var(--primary); }
+
+/* --- overlay surfaces: palette, quick open, prompts ---------------------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  padding-top: 12vh;
+  background: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(2px);
+}
+.overlay[hidden] { display: none; }
+
+/* Masked reveal, per the motion brief. */
+@keyframes revealDown {
+  from { opacity: 0; clip-path: inset(0 0 100% 0); transform: translateY(-4px); }
+  to   { opacity: 1; clip-path: inset(0 0 0 0); transform: none; }
+}
+.palette {
+  width: min(620px, 92vw);
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-card);
+  box-shadow: inset 0 1px 0 var(--edge-lit), 0 12px 40px rgb(0 0 0 / 0.7);
+  overflow: hidden;
+  animation: revealDown var(--dur) var(--ease);
+}
+.palette input {
+  flex: none;
+  padding: 12px var(--space-gap);
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface-sunken);
+  border: 0;
+  border-bottom: 1px solid var(--edge-soft);
+  box-shadow: var(--sink);
+  outline: none;
+}
+.palette input::placeholder { color: var(--text-dim); }
+.palette ul { margin: 0; padding: 4px 0; list-style: none; overflow: auto; min-height: 0; }
+.palette li {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px var(--space-gap);
+  cursor: pointer;
+  color: var(--text-dim);
+  border-left: 2px solid transparent;
+}
+.palette li[aria-selected='true'] {
+  background: var(--surface-sunken);
+  border-left-color: var(--primary);
+  color: var(--text);
+}
+.palette li .hint { margin-left: auto; font-size: 11px; color: var(--text-dim); }
+.palette li .path { font-size: 11px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; }
+.palette .empty {
+  padding: var(--card-padding);
+  font-family: var(--font-serif);
+  font-size: var(--body-md-size);
+  line-height: var(--body-md-lh);
+  color: var(--text-dim);
+}
+.palette mark { background: transparent; color: var(--primary); font-weight: 600; }
+
+/* --- context menu -------------------------------------------------------- */
+
+.menu {
+  position: fixed;
+  z-index: 60;
+  min-width: 180px;
+  padding: 4px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius-card);
+  box-shadow: inset 0 1px 0 var(--edge-lit), 0 8px 28px rgb(0 0 0 / 0.7);
+  animation: revealDown var(--dur-fast) var(--ease);
+}
+.menu[hidden] { display: none; }
+.menu button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-gap);
+  padding: 6px var(--space-base);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: var(--text-dim);
+  text-align: left;
+  cursor: pointer;
+}
+.menu button:hover { background: var(--surface-sunken); color: var(--text); }
+.menu button.danger:hover { color: var(--chroma-red); }
+.menu hr { margin: 4px var(--space-base); border: 0; border-top: 1px solid var(--edge-soft); }
+.menu .hint { font-size: 10px; color: var(--text-dim); }
+
+/* --- bottom panel (search results, extension panels) --------------------- */
+
+.panel {
+  height: 220px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-top: 1px solid var(--edge);
+  box-shadow: inset 0 1px 0 var(--edge-lit);
+  min-height: 0;
+}
+.panel[hidden] { display: none; }
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-base);
+  height: var(--tab-h);
+  padding: 0 var(--space-base) 0 12px;
+  flex: none;
+  border-bottom: 1px solid var(--edge-soft);
+  background: var(--surface-raised);
+}
+.panel-title {
+  font-size: var(--label-md-size);
+  font-weight: var(--label-md-weight);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.panel-body { flex: 1; overflow: auto; min-height: 0; padding: var(--space-base) 0; }
+.panel-body .prose {
+  padding: 0 var(--card-padding);
+  font-family: var(--font-serif);
+  font-size: var(--body-md-size);
+  line-height: var(--body-md-lh);
+  color: var(--text-dim);
+}
+
+.panel .search-field { padding: var(--space-base) 12px; flex: none; }
+.panel .search-field input {
+  width: 100%;
+  padding: 6px var(--space-base);
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--edge-soft);
+  border-radius: var(--radius-control);
+  box-shadow: var(--sink);
+  outline: none;
+}
+.panel .search-field input:focus { border-color: var(--primary); }
+
+.hit {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-base);
+  padding: 3px 12px;
+  cursor: pointer;
+  color: var(--text-dim);
+  border-left: 2px solid transparent;
+}
+.hit:hover { background: var(--surface-hover); color: var(--text); }
+.hit .where { flex: none; color: var(--primary); font-size: 11px; }
+.hit .text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.hit mark { background: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--text); }
+
+/* --- toast --------------------------------------------------------------- */
+
+.toasts {
+  position: fixed;
+  right: var(--space-gap);
+  bottom: calc(var(--status-h) + var(--space-gap));
+  z-index: 70;
+  display: grid;
+  gap: var(--space-base);
+  justify-items: end;
+}
+.toast {
+  padding: var(--space-base) var(--space-gap);
+  max-width: 380px;
+  background: var(--surface-raised);
+  border: 1px solid var(--edge);
+  border-left: 2px solid var(--primary);
+  border-radius: var(--radius-card);
+  box-shadow: inset 0 1px 0 var(--edge-lit), 0 6px 20px rgb(0 0 0 / 0.6);
+  color: var(--text);
+  animation: revealDown var(--dur) var(--ease);
+}
+.toast.error { border-left-color: var(--chroma-red); }
+.toast.warn { border-left-color: var(--chroma-orange); }

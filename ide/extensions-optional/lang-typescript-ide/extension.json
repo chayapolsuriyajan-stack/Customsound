@@ -1,0 +1,14 @@
+{
+  "id": "lang-typescript-ide",
+  "name": "TypeScript IntelliSense",
+  "version": "1.0.0",
+  "description": "Completions, hovers, signature help and diagnostics for JavaScript and TypeScript. Off by default: its worker is ~5 MB, larger than the rest of MiniCode combined. Run \"TypeScript: Enable IntelliSense\" to turn it on.",
+  "main": "index.js",
+  "activationEvents": ["onCommand:typescript.enable", "onStartup"],
+  "contributes": {
+    "commands": [
+      { "command": "typescript.enable", "title": "TypeScript: Enable IntelliSense", "category": "TypeScript" },
+      { "command": "typescript.status", "title": "TypeScript: IntelliSense Status", "category": "TypeScript" }
+    ]
+  }
+}
