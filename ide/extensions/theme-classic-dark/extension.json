@@ -1,0 +1,11 @@
+{
+  "id": "theme-classic-dark",
+  "name": "Classic Dark",
+  "version": "1.0.0",
+  "description": "A conventional blue-grey dark theme. Proves a theme contribution restyles the whole shell — panes, tabs and status bar — not just the code area.",
+  "main": "index.js",
+  "activationEvents": ["onStartup"],
+  "contributes": {
+    "themes": [{ "label": "Classic Dark" }]
+  }
+}
