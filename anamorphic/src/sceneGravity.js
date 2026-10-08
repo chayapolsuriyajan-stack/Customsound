@@ -1,7 +1,8 @@
 // Scene 1 — "GRAVITY": a white box recessed behind the screen whose back wall is tiled with
-// extruded symbols. Symbols ripple in depth, periodically detach, fall to the floor and
-// then fly back to their slots.
+// extruded symbols. Symbols ripple in depth, periodically detach, tumble and pile up on the
+// floor (rigid-body physics via cannon-es), then fly back to their slots.
 import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
 import { glyphGeometry, GLYPH_NAMES } from './glyphs.js';
 
 const CYCLE = 16; // seconds: drop 0–9, rest 9–12, return 12–14, idle 14–16
@@ -69,6 +70,26 @@ export function createGravityScene(W, H) {
     return r < 0.55 ? mats.dark : r < 0.78 ? mats.mid : r < 0.96 ? mats.light : mats.cyan;
   };
 
+  // Physics world: the room is five static planes plus the screen glass at z = 0.
+  const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -900, 0) }); // cm/s², a bit lighter than real
+  world.broadphase = new CANNON.SAPBroadphase(world);
+  world.allowSleep = true;
+  world.solver.iterations = 10;
+  world.defaultContactMaterial.friction = 0.5;
+  world.defaultContactMaterial.restitution = 0.15;
+  const addPlane = (x, y, z, ax, ay, az, angle) => {
+    const b = new CANNON.Body({ type: CANNON.Body.STATIC, shape: new CANNON.Plane() });
+    b.position.set(x, y, z);
+    if (angle) b.quaternion.setFromAxisAngle(new CANNON.Vec3(ax, ay, az), angle);
+    world.addBody(b);
+  };
+  addPlane(0, -H / 2, 0, 1, 0, 0, -Math.PI / 2); // floor
+  addPlane(0, H / 2, 0, 1, 0, 0, Math.PI / 2); // ceiling
+  addPlane(0, 0, -D, 0, 0, 0, 0); // back wall
+  addPlane(0, 0, 0, 0, 1, 0, Math.PI); // screen glass
+  addPlane(-W / 2, 0, 0, 0, 1, 0, Math.PI / 2); // left
+  addPlane(W / 2, 0, 0, 0, 1, 0, -Math.PI / 2); // right
+
   const cols = 22;
   const cell = W / (cols + 1);
   const top = H / 2 - labelH * 2.2;
@@ -97,11 +118,23 @@ export function createGravityScene(W, H) {
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       scene.add(mesh);
+      const bb = mesh.geometry.boundingBox ?? (mesh.geometry.computeBoundingBox(), mesh.geometry.boundingBox);
+      const he = bb.getSize(new THREE.Vector3()).multiplyScalar(size / 2);
+      const body = new CANNON.Body({
+        mass: 1,
+        type: CANNON.Body.KINEMATIC,
+        shape: new CANNON.Box(new CANNON.Vec3(he.x, he.y, he.z)),
+        sleepSpeedLimit: 4,
+        linearDamping: 0.05,
+        angularDamping: 0.1,
+      });
+      body.position.set(home.x, home.y, home.z);
+      body.quaternion.set(homeQ.x, homeQ.y, homeQ.z, homeQ.w);
+      world.addBody(body);
       glyphs.push({
+        body,
         mesh, home, homeQ,
-        state: 'wall', // wall | falling | resting | returning
-        vel: new THREE.Vector3(),
-        spin: new THREE.Vector3(),
+        state: 'wall', // wall | falling | returning
         fromP: new THREE.Vector3(),
         fromQ: new THREE.Quaternion(),
         phase: Math.random() * Math.PI * 2,
@@ -109,90 +142,87 @@ export function createGravityScene(W, H) {
     }
   }
 
-  const g = -900; // cm/s², a little lighter than real gravity so it reads on screen
-  const floorY = -H / 2;
-  const tmpQ = new THREE.Quaternion();
-  const tmpE = new THREE.Euler();
   let lastPhase = 0;
 
+  function setKinematic(s) {
+    s.body.type = CANNON.Body.KINEMATIC;
+    s.body.velocity.setZero();
+    s.body.angularVelocity.setZero();
+    s.body.updateMassProperties();
+  }
+
+  function syncBody(s) {
+    const p = s.mesh.position, q = s.mesh.quaternion;
+    s.body.position.set(p.x, p.y, p.z);
+    s.body.quaternion.set(q.x, q.y, q.z, q.w);
+  }
+
   function update(dt, time) {
-    dt = Math.min(dt, 1 / 30);
     const phase = time % CYCLE;
 
     // Start of a new cycle: everything is home again.
     if (phase < lastPhase) {
-      for (const s of glyphs) if (s.state !== 'wall') s.state = 'wall';
+      for (const s of glyphs) if (s.state !== 'wall') { s.state = 'wall'; setKinematic(s); }
     }
     lastPhase = phase;
 
-    // Detach glyphs — the rate ramps up through the drop window.
+    // Detach glyphs — the share that has fallen follows the cycle clock (accelerating),
+    // so the effect looks the same at any frame rate.
     if (phase < 9) {
-      const rate = 4 + phase * 9; // glyphs per second
-      let n = rate * dt;
-      while (n > 0) {
-        if (Math.random() < n) {
-          const s = glyphs[Math.floor(Math.random() * glyphs.length)];
-          if (s.state === 'wall') {
-            s.state = 'falling';
-            s.vel.set((Math.random() - 0.5) * 30, Math.random() * 20, 40 + Math.random() * 90);
-            s.spin.set((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 6);
-          }
-        }
-        n -= 1;
+      const want = Math.floor(glyphs.length * 0.6 * Math.pow(phase / 9, 1.6));
+      let fallen = glyphs.length - glyphs.filter((s) => s.state === 'wall').length;
+      for (let tries = 0; fallen < want && tries < 200; tries++) {
+        const s = glyphs[Math.floor(Math.random() * glyphs.length)];
+        if (s.state !== 'wall') continue;
+        s.state = 'falling';
+        const b = s.body;
+        b.type = CANNON.Body.DYNAMIC;
+        b.updateMassProperties();
+        b.velocity.set((Math.random() - 0.5) * 30, Math.random() * 20, 40 + Math.random() * 90);
+        b.angularVelocity.set((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 6);
+        b.wakeUp();
+        fallen++;
       }
     }
 
-    // Begin the return flight.
+    // Return flight: take the glyphs out of the simulation and tween them home.
     const returning = phase >= 12 && phase < 14;
     const k = returning ? THREE.MathUtils.smootherstep((phase - 12) / 2, 0, 1) : 0;
 
-    const hs = size * 0.32; // approximate half-extent used for collisions
     for (const s of glyphs) {
       const m = s.mesh;
-      if (returning && (s.state === 'falling' || s.state === 'resting')) {
+      if (returning && s.state === 'falling') {
         s.state = 'returning';
+        setKinematic(s);
         s.fromP.copy(m.position);
         s.fromQ.copy(m.quaternion);
       }
       if (s.state === 'wall') {
-        // Gentle depth ripple across the wall.
+        // Gentle depth ripple across the wall; the kinematic body follows so it can knock others.
         const w = Math.sin(time * 1.3 + s.home.x * 0.08 + s.home.y * 0.05 + s.phase * 0.3);
         m.position.set(s.home.x, s.home.y, s.home.z + Math.max(0, w) * size * 0.35);
         m.quaternion.copy(s.homeQ);
+        syncBody(s);
       } else if (s.state === 'returning') {
         m.position.lerpVectors(s.fromP, s.home, k);
         m.quaternion.slerpQuaternions(s.fromQ, s.homeQ, k);
+        syncBody(s);
         if (phase >= 14 || k >= 1) s.state = 'wall';
-      } else if (s.state === 'falling') {
-        s.vel.y += g * dt;
-        m.position.addScaledVector(s.vel, dt);
-        tmpQ.setFromEuler(tmpE.set(s.spin.x * dt, s.spin.y * dt, s.spin.z * dt));
-        m.quaternion.multiply(tmpQ);
-
-        // Bounce off the room's walls (front opening is the screen: keep them inside).
-        const p = m.position;
-        if (p.x < -W / 2 + hs) { p.x = -W / 2 + hs; s.vel.x *= -0.4; }
-        if (p.x > W / 2 - hs) { p.x = W / 2 - hs; s.vel.x *= -0.4; }
-        if (p.z < -D + hs) { p.z = -D + hs; s.vel.z *= -0.4; }
-        if (p.z > -hs) { p.z = -hs; s.vel.z *= -0.3; }
-        if (p.y < floorY + hs) {
-          p.y = floorY + hs;
-          s.vel.y *= -0.28;
-          s.vel.x *= 0.7;
-          s.vel.z *= 0.7;
-          s.spin.multiplyScalar(0.5);
-          if (Math.abs(s.vel.y) < 25) {
-            s.state = 'resting';
-            // Settle flat on the floor so piles look plausible.
-            tmpE.setFromQuaternion(m.quaternion);
-            m.quaternion.setFromEuler(tmpE.set(-Math.PI / 2, 0, tmpE.z));
-          }
-        }
       }
+    }
+
+    world.step(1 / 60, Math.min(dt, 0.1), 3);
+
+    for (const s of glyphs) {
+      if (s.state !== 'falling') continue;
+      const { position: p, quaternion: q } = s.body;
+      s.mesh.position.set(p.x, p.y, p.z);
+      s.mesh.quaternion.set(q.x, q.y, q.z, q.w);
     }
   }
 
   function dispose() {
+    while (world.bodies.length) world.removeBody(world.bodies[0]);
     scene.traverse((o) => {
       if (o.material) {
         if (o.material.map) o.material.map.dispose();
@@ -203,5 +233,8 @@ export function createGravityScene(W, H) {
     label.geometry.dispose();
   }
 
-  return { scene, update, dispose, hudTargets: [] };
+  return {
+    scene, update, dispose, hudTargets: [], glyphs,
+    post: { bloom: 0.12, bloomThreshold: 0.97, dof: 0.00015, grain: 0.03, vignette: 0.22 },
+  };
 }

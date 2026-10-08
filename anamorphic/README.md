@@ -10,11 +10,12 @@ Here the whole pipeline runs in the browser:
 | --- | --- |
 | MediaPipe in TouchDesigner | MediaPipe Face Landmarker (`@mediapipe/tasks-vision`, WebGL/WASM) |
 | UE5 off-axis camera | Three.js with an asymmetric frustum (`src/offaxis.js`) |
-| UE5 scenes | `src/sceneGravity.js` (white box + falling glyph wall), `src/sceneFloat.js` (dark garden, floating shapes, light bars, red HUD tracking boxes) |
+| UE5 scenes | `src/sceneGravity.js` (white box + glyph wall, rigid-body physics via cannon-es), `src/sceneFloat.js` (dark garden, floating shapes, light bars, red HUD tracking boxes) |
+| UE5 post-processing | `src/post.js`: bloom, depth of field focused on the screen plane, film grain + vignette |
 
 ## Run
 
-No build step — it's static files that load Three.js and MediaPipe from jsDelivr.
+No build step — it's static files that load Three.js, cannon-es and MediaPipe from jsDelivr.
 The camera only works from `https://` or `http://localhost`:
 
 ```sh
@@ -25,9 +26,9 @@ npx serve .          # or: python3 -m http.server 8000
 
 No webcam? Move the mouse to simulate your head (wheel = distance). If you don't move the
 mouse for 8 s, an automatic head path takes over (`?auto` forces it on). Use `?scene=float` to
-open on the second scene.
+open on the second scene, and `?nopost` (or the `G` key) to turn off post-processing on slow GPUs.
 
-Keys: `1`/`2` scene · `C` camera · `A` auto · `D` HUD · `P` webcam preview · `H` hide panel · `F` fullscreen
+Keys: `1`/`2` scene · `C` camera · `A` auto · `G` post FX · `D` HUD · `P` webcam preview · `H` hide panel · `F` fullscreen
 
 ## Calibrating
 

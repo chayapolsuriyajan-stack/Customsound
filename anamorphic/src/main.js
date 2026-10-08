@@ -3,6 +3,7 @@ import { applyOffAxis } from './offaxis.js';
 import { HeadTracker } from './tracking.js';
 import { createGravityScene } from './sceneGravity.js';
 import { createFloatScene } from './sceneFloat.js';
+import { createPost } from './post.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -26,6 +27,8 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 
 const camera = new THREE.PerspectiveCamera();
+const post = createPost(renderer, camera);
+let usePost = !new URLSearchParams(location.search).has('nopost');
 const hud = $('hud');
 const hudCtx = hud.getContext('2d');
 
@@ -44,6 +47,7 @@ function buildScene() {
   screenW = w;
   screenH = h;
   current = settings.scene === 'gravity' ? createGravityScene(w, h) : createFloatScene(w, h);
+  post.setScene(current.scene, current.post);
   document.querySelectorAll('[data-scene]').forEach((b) => b.classList.toggle('on', b.dataset.scene === settings.scene));
 }
 
@@ -55,6 +59,7 @@ function scheduleRebuild() {
 
 function resize() {
   renderer.setSize(innerWidth, innerHeight, false);
+  post.setSize(innerWidth, innerHeight);
   hud.width = innerWidth * devicePixelRatio;
   hud.height = innerHeight * devicePixelRatio;
   scheduleRebuild();
@@ -135,7 +140,7 @@ function drawHud(t) {
   g.fillStyle = 'rgba(255,255,255,0.45)';
   g.textAlign = 'right';
   g.fillText(
-    `FPS ${fps.toFixed(0)}  |  SRC ${source.toUpperCase()}  |  EYE ${eye.x.toFixed(1)} ${eye.y.toFixed(1)} ${eye.z.toFixed(1)} cm`,
+    `FPS ${fps.toFixed(0)}  |  SRC ${source.toUpperCase()}  |  FX ${usePost ? 'ON' : 'OFF'}  |  EYE ${eye.x.toFixed(1)} ${eye.y.toFixed(1)} ${eye.z.toFixed(1)} cm`,
     W - 14 * s, 18 * s,
   );
   g.textAlign = 'left';
@@ -245,6 +250,7 @@ addEventListener('keydown', (ev) => {
   else if (k === 'd') settings.hud = !settings.hud;
   else if (k === 'p') settings.preview = !settings.preview;
   else if (k === 'a') auto = !auto;
+  else if (k === 'g') usePost = !usePost;
   else if (k === 'c' && !tracker.running) startCamera();
   else if (k === 'f') document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
 });
@@ -266,10 +272,11 @@ renderer.setAnimationLoop((now) => {
   updateEye(dt, t);
   current.update(dt, t);
   applyOffAxis(camera, eye, screenW, screenH, 1, 3000);
-  renderer.render(current.scene, camera);
+  if (usePost) post.render(t, eye.z);
+  else renderer.render(current.scene, camera);
   drawHud(t);
   drawPreview();
 });
 
 // expose for debugging / automated screenshots
-window.anamorphic = { settings, eye, setScene, setEye: (x, y, z) => { auto = false; lastMouseMove = performance.now(); mouse = { x: x / (screenW * 1.3) + 0.5, y: -y / (screenH * 1.3) + 0.5 }; if (z) settings.distance = z; } };
+window.anamorphic = { settings, eye, setScene, get current() { return current; }, setEye: (x, y, z) => { auto = false; lastMouseMove = performance.now(); mouse = { x: x / (screenW * 1.3) + 0.5, y: -y / (screenH * 1.3) + 0.5 }; if (z) settings.distance = z; } };

@@ -49,7 +49,7 @@ function glowTexture() {
   const g = c.getContext('2d');
   const grad = g.createLinearGradient(0, 0, 64, 0);
   grad.addColorStop(0, 'rgba(255,255,255,0)');
-  grad.addColorStop(0.5, 'rgba(255,255,255,0.55)');
+  grad.addColorStop(0.5, 'rgba(255,255,255,0.3)');
   grad.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = grad;
   g.fillRect(0, 0, 64, 256);
@@ -138,7 +138,7 @@ export function createFloatScene(W, H) {
   });
   const barH = H * 1.25;
   const barGeo = new THREE.CylinderGeometry(0.35, 0.35, barH, 8);
-  const glowGeo = new THREE.PlaneGeometry(9, barH);
+  const glowGeo = new THREE.PlaneGeometry(5, barH);
   const barXs = [-0.62, -0.38, 0.18, 0.42, 0.7, -0.05];
   barXs.forEach((fx, i) => {
     const bar = new THREE.Mesh(barGeo, barMat);
@@ -220,5 +220,8 @@ export function createFloatScene(W, H) {
     shapes.forEach((s) => s.dispose());
   }
 
-  return { scene, update, dispose, hudTargets };
+  return {
+    scene, update, dispose, hudTargets,
+    post: { bloom: 0.55, bloomThreshold: 0.93, bloomRadius: 0.5, dof: 0.00012, maxBlur: 0.004, grain: 0.045, vignette: 0.4 },
+  };
 }
