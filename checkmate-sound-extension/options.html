@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Return by Death Checkmate – Options</title>
+<style>
+  body { font: 14px system-ui, sans-serif; min-width: 340px; padding: 16px; }
+  label { display: block; margin: 14px 0 4px; font-weight: 600; }
+  input[type=range] { width: 100%; }
+  output { font-variant-numeric: tabular-nums; }
+  .hint { color: #666; font-size: 12px; margin-top: 2px; }
+  button { margin-top: 14px; margin-right: 8px; }
+</style>
+<h3>Sound timing</h3>
+<label for="offset">Timing offset: <output id="offsetOut"></output></label>
+<input id="offset" type="range" min="-800" max="2000" step="10" value="0">
+<div class="hint">Positive = play later. Negative = play earlier (skips into the start of the clip).</div>
+<label for="volume">Volume: <output id="volumeOut"></output></label>
+<input id="volume" type="range" min="0" max="100" step="1" value="100">
+<button id="preview">Preview</button><button id="reset">Reset</button>
+<script src="options.js"></script>
