@@ -8,3 +8,10 @@ Chrome extension that plays `zero-return-by-death-trimmed.mp3` (Subaru's "Return
 3. Play a game; the sound plays on checkmate.
 
 Detection watches the move list for a `#` move and the game-over banner for "checkmate". Chrome may block audio until you've clicked on the page once (normal when playing a game).
+
+## Options
+Open the extension's **Options** (right-click the icon → Options, or `chrome://extensions` → Details → Extension options):
+- **Timing offset** (−800 to +2000 ms): positive plays the sound later; negative plays it earlier by skipping into the start of the clip.
+- **Volume**, plus **Preview** and **Reset** buttons.
+
+Settings sync via `chrome.storage.sync` and apply immediately to open tabs.

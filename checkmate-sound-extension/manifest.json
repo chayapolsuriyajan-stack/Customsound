@@ -1,8 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Return by Death Checkmate",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Plays the Subaru \"Return by Death\" sound when a game ends in checkmate on chess.com or lichess.",
+  "permissions": ["storage"],
+  "options_ui": { "page": "options.html", "open_in_tab": false },
   "content_scripts": [
     {
       "matches": [
