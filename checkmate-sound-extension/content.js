@@ -1,5 +1,5 @@
 (() => {
-  const audio = new Audio(chrome.runtime.getURL("capture.mp3"));
+  const audio = new Audio(chrome.runtime.getURL("zero-return-by-death-trimmed.mp3"));
   audio.preload = "auto";
 
   const isLichess = location.hostname.endsWith("lichess.org");

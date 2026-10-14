@@ -16,7 +16,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["capture.mp3"],
+      "resources": ["zero-return-by-death-trimmed.mp3"],
       "matches": [
         "https://www.chess.com/*",
         "https://chess.com/*",

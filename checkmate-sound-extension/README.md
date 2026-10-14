@@ -1,6 +1,6 @@
 # Return by Death Checkmate
 
-Chrome extension that plays `capture.mp3` (Subaru's "Return by Death" sound) when a game ends in checkmate on chess.com or lichess.org — for either player.
+Chrome extension that plays `zero-return-by-death-trimmed.mp3` (Subaru's "Return by Death" sound) when a game ends in checkmate on chess.com or lichess.org — for either player.
 
 ## Install
 1. Open `chrome://extensions` and enable **Developer mode**.
